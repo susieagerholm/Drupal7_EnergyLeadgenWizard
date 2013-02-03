@@ -57,9 +57,9 @@ function energy_leadgen_form($form, &$form_state) {
 	
 	$options = array(0  => t('Nej'), 1 => t('Ja'));
 	$form['sprmaal'] = array(
-	'#type' => 'fieldset',
-	'#collapsible' => FALSE,
-	'#tree' => TRUE,
+	  '#type' => 'fieldset',
+	  '#collapsible' => FALSE,
+	  '#tree' => TRUE,
 	);
 	$form['sprmaal']['intro'] = array(
 		'#type' => 'item',
@@ -243,88 +243,100 @@ function _is_valid_email($element, &$form_state) {
 }				
 
 /**
- * Logik til haandtering af submit af formen paa henh step 1 og step 2
+ * Logik til haandtering af submit af formen paa henh step 1 og step 2 - burde ideelt ligge i Controller Class!!!
  */
 
 function energy_leadgen_form_submit($form, &$form_state) {	
+		//Haandtering af submit paa de forskellige trin i formen...
+		if ($form_state['triggering_element']['#id'] == 'edit-calculate') { //Hvis formen subittes efter første trin
+			
+			calculate_score($form_state);
 		
-		if ($form_state['triggering_element']['#id'] == 'edit-calculate') {
-			
-			//sæt brugerens score for potentiel energibesparelse 
-			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['antal_medarbejdere']) ? 5 : 0;
-			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['alder_bygninger'] ? 10 : 0);
-			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['udfoert_energitjek'] ? 0 : 10);
-			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['opsat_maaleudstyr'] ? 0 : 5);
-			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['foretaget_energitiltag'] ? 0 : 5);
-			
 			$form_state['storage']['contact'] = TRUE; //Sæt kontaktoplysninger som aktive step
 			$form_state['storage']['questions_values'] = $form_state['values']; //Deponer aktuelle indtastninger i storage
 			$form_state['rebuild'] = TRUE; //Genbyg formular med step 2 - kontaktoplysninger
 			
 		}
-		else if ($form_state['triggering_element']['#id'] == 'edit-submit') {
+		else if ($form_state['triggering_element']['#id'] == 'edit-submit') { //Hvis formen submittes efter andet trin
 			
-			//Sæt værdi for den første kommentar paa sidste side
-			if($form_state['values']['kontakt']['energitjek'][1] != NULL) {
-			$_SESSION['energy_leadgen_accept'] = 1;
-			}
+			define_payoff($form_state);
 			
-			//Sæt værdi for payoff messages og images
-			switch ($form_state['values']['kontakt']['branche']) {
-			    case 0:
-			        $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_INDUSTRI;
-							$_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_INDUSTRI;
-			        break;
-			    case 1:
-			         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_KONTOR;
-							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_KONTOR;
-			        break;
-			    case 2:
-			         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOSPITAL;
-						   $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOSPITAL;
-			        break;
-					case 3: 
-							 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOTEL;
-							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOTEL;
-							break;
-					case 4: 
-							 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_ANDET;
-							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_ANDET;
-			        break;
-			}
-			
-			//Opdater form til næste trin
-			$form_state['storage']['payoff'] = TRUE; //Sæt kundens payoff for lead som aktive step
+			//Opdater form til tredje og sidste trin
+			$form_state['storage']['payoff'] = TRUE; //Sæt kundens payoff som aktive step
 			$form_state['storage']['contact'] = $form_state['values']; //Deponer aktuelle indtastninger i storage
-			$form_state['rebuild'] = TRUE; //Genbyg formular med step 3 - kundens payoff
-					
-			$path = $form_state['storage']['questions_values']['sprmaal'];		
-			$path2 = $form_state['storage']['contact']['kontakt'];
+			$form_state['rebuild'] = TRUE; //Genbyg formular med step 3 - kundens payoff		
 			
-			//Indsæt lead i databasen
-				$lead = db_insert('energy_leadgen') 
-				->fields(array(					
-					'time_submitted' => time(),
-				  'antal_medarbejdere' => $path['antal_medarbejdere'],
-					'alder_bygninger' => $path['alder_bygninger'],
-				  'udfoert_energitjek' => $path['udfoert_energitjek'],
-				  'opsat_maaleudstyr' => $path['opsat_maaleudstyr'],
-				  'foretaget_energitiltag' => $path['foretaget_energitiltag'],
-					'navn' => $path2['navn'],
-				  'stilling' => $path2['stilling'],
-					'virksomhed' => $path2['virksomhed'],
-				  'branche' => $path2['branche'],
-					'email' => $path2['email'], //I et prod.miljø kan indhentede email krypteres, saa kundens oplysninger beskyttes 
-				  'accept_kontakt' => $path2['energitjek'],
-				))
-				->execute();
+			add_lead_to_db($form_state);//Gem lead i db
 	
 			//unset ($form_state['storage']);
 			}
 }
 
-//Add custom module CSS to pages 
-drupal_add_css(drupal_get_path('module', 'energy_leadgen') . '/css/ee_leadgen.css', array('group' => CSS_THEME, 'every_page' => false, 'weight' => 9999));
+function calculate_score($form_state) {
+		//Find brugerens score for potentiel energibesparelse - burde refaktoreres til controller om muligt
+		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['antal_medarbejdere']) ? 5 : 0;
+		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['alder_bygninger'] ? 10 : 0);
+		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['udfoert_energitjek'] ? 0 : 10);
+		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['opsat_maaleudstyr'] ? 0 : 5);
+		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['foretaget_energitiltag'] ? 0 : 5);		
+}
+
+function define_payoff($form_state) {
+	//Definer indhold af kundens payoff paa tredje og sidste side 
+	//Sæt om kontaktbesked skal vises paa siden
+	if($form_state['values']['kontakt']['energitjek'][1] != NULL) {
+	$_SESSION['energy_leadgen_accept'] = 1;
+	}
+	
+	//Sæt værdi for payoff messages og images
+	switch ($form_state['values']['kontakt']['branche']) {
+	    case 0:
+	        $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_INDUSTRI;
+					$_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_INDUSTRI;
+	        break;
+	    case 1:
+	         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_KONTOR;
+					 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_KONTOR;
+	        break;
+	    case 2:
+	         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOSPITAL;
+				   $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOSPITAL;
+	        break;
+			case 3: 
+					 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOTEL;
+					 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOTEL;
+					break;
+			case 4: 
+					 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_ANDET;
+					 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_ANDET;
+	        break;
+	}
+	
+}
+
+//Gem lead i db - burde ideelt placeres i Controller Class!!!
+function add_lead_to_db($form_state) {
+		$path = $form_state['storage']['questions_values']['sprmaal'];		
+		$path2 = $form_state['storage']['contact']['kontakt'];
+	
+	//Indsæt lead i databasen - burde udfaktoreres til egen funktion for reusability 
+		$lead = db_insert('energy_leadgen') 
+		->fields(array(					
+			'time_submitted' => time(),
+		  'antal_medarbejdere' => $path['antal_medarbejdere'],
+			'alder_bygninger' => $path['alder_bygninger'],
+		  'udfoert_energitjek' => $path['udfoert_energitjek'],
+		  'opsat_maaleudstyr' => $path['opsat_maaleudstyr'],
+		  'foretaget_energitiltag' => $path['foretaget_energitiltag'],
+			'navn' => $path2['navn'],
+		  'stilling' => $path2['stilling'],
+			'virksomhed' => $path2['virksomhed'],
+		  'branche' => $path2['branche'],
+			'email' => $path2['email'], //I et prod.miljø kan indhentede email krypteres, saa kundens oplysninger beskyttes 
+		  'accept_kontakt' => $path2['energitjek'],
+		))
+		->execute();
+}
 
 /**
  * Implements hook_theme() 
@@ -345,7 +357,7 @@ function energy_leadgen_theme() {
 	  		'render element' => 'form',
 	      'function' => 'energy_leadgen_form_payoff',
 	  ),
-		// Deklarere theming funktion for radiobtns.
+		// Deklarere theming funktion for delelementer paa siden.
 		'leadgen_radios' => array(
 		  'arguments' => array('element' => NULL),
 		),
@@ -397,6 +409,9 @@ function theme_energy_leadgen_form_contact($variables) {
 	return $output;
 }
 
+/**
+ * Theming function for step 3 i multistep form - payoff
+ */
 function theme_energy_leadgen_form_payoff($variables) {
   //krumo($variables);
 	$form = $variables['form'];
@@ -410,7 +425,9 @@ function theme_energy_leadgen_form_payoff($variables) {
 	$output .= drupal_render_children($form);
 	return $output;
 }
-
+/**
+ * Theming af radiobuttons - grupperinger 
+ */
 function theme_leadgen_radios($element) {
 	$keys = array_keys($element[$key]['#options']);
 	$type = $element[$key]['#parents'][0]; //anvende denne til dobbelttjek af inputtype?
@@ -419,7 +436,7 @@ function theme_leadgen_radios($element) {
 	$counter = 0;
   foreach ($keys as $key) {
 		$element['value_of_key'] = $counter;
-    // Each radios is themed by calling our custom 'leadgen_radio' theme function.
+    // Hver radio themes af 'leadgen_radio' theme function.
     $output .= theme('leadgen_radio', $element);
 		$counter++;
   }
@@ -427,7 +444,9 @@ function theme_leadgen_radios($element) {
   $output .= '</div>';
   return $output;
 }
-
+/**
+ * Theming af radiobuttons - individuelle
+ */
 function theme_leadgen_radio($element) {
 	$my_key = $element['value_of_key'];
 	//krumo($element);
@@ -463,4 +482,6 @@ function theme_leadgen_image($variables) {
   return '<img class="img_leadgen"' . drupal_attributes($attributes) . ' />';
 }
 
+//Tilføj custom CSS til siden 
+drupal_add_css(drupal_get_path('module', 'energy_leadgen') . '/css/ee_leadgen.css', array('group' => CSS_THEME, 'every_page' => false, 'weight' => 9999));
 
