@@ -1,0 +1,12 @@
+name = Energy-efficiency leadgenerator
+description = Module designed to generate leads to energy efficiency business unit
+; no dependencies
+package = Lean mean lead machine 
+core = 7.x
+
+; styling of module
+stylesheet[all][] = css/ee_leadgen.css
+
+; related files
+files[] = energy_leadgen.install
+files[] = energy_leadgen.module

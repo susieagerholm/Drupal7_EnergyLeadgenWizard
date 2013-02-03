@@ -1,0 +1,466 @@
+<?php
+
+//Alle anvendte variable og constants namespaces så godt som muligt :)
+//Sætte session specifikke variable
+$_SESSION['energy_leadgen_score'] = 5;
+$_SESSION['energy_leadgen_msg'] = '';
+$_SESSION['energy_leadgen_img'] = '';
+$_SESSION['energy_leadgen_accept'] = 0;
+
+//Sætte constants med specifikke payoff tekster, billeder og whitepapers for de forskellige målgrupper
+define('ENERGY_LEADGEN_MSG_INDUSTRI', 'Download "Energitjek og løbende målinger gør Flügger-fabrikkerne grønne" - en casebeskrivelse af Flüggers fabrik i Kolding, der er på vej mod en energi-besparelse på 20% og dermed ekstra 2 mill. på bundlinien...'); 
+define('ENERGY_LEADGEN_MSG_KONTOR', 'Download "Skuespilhus omsætter spildvarme til godt indeklima" - en casebeskrivelse af, hvordan Schneider Electrics Buildings Business har hjulpet Skuespilhuset på havnefronten i København på vej mod markante energibesparelser...');
+define('ENERGY_LEADGEN_MSG_HOSPITAL', 'Download "Frederiksbergs hospital sætter nye standarder for offentlig energibesparelse" - en casebeskrivelse af, hvordan et energitjek har lagt et loft over de ellers stigende energiudgifter...');
+define('ENERGY_LEADGEN_MSG_HOTEL', 'Download "Bella Centerets nye, grønne energiregnskab" - en casebeskrivelse af, hvordan Schneider Electric har hjulpet Skandinaviens største udstillings- og konferencecenter med at reducere energiforbrug, C02-udslip og driftsomkostninger...');
+define('ENERGY_LEADGEN_MSG_ANDET', 'Download materiale til Andet gruppen...');
+
+define('ENERGY_LEADGEN_IMG_INDUSTRI', drupal_get_path('module', 'energy_leadgen') . '/img/flugger-undervisning-350x233.jpg');
+define('ENERGY_LEADGEN_IMG_KONTOR', drupal_get_path('module', 'energy_leadgen') . '/img/skuespilhuset-udefra-350x230.jpg');
+define('ENERGY_LEADGEN_IMG_HOSPITAL', drupal_get_path('module', 'energy_leadgen') . '/img/frederiksberg-hospital-350x230.jpg');
+define('ENERGY_LEADGEN_IMG_HOTEL', drupal_get_path('module', 'energy_leadgen') . '/img/bella-center1-350x230.jpg');
+define('ENERGY_LEADGEN_IMG_ANDET', drupal_get_path('module', 'energy_leadgen') . '/img/rudersdal-1-350x190.jpg');
+
+define('ENERGY_LEADGEN_IMG_INDUSTRI', drupal_get_path('module', 'energy_leadgen') . '/pdf/industri.pdf');
+define('ENERGY_LEADGEN_IMG_KONTOR', drupal_get_path('module', 'energy_leadgen') . '/pdf/kontor.pdf');
+define('ENERGY_LEADGEN_IMG_HOSPITAL', drupal_get_path('module', 'energy_leadgen') . '/pdf/hospital.pdf');
+define('ENERGY_LEADGEN_IMG_HOTEL', drupal_get_path('module', 'energy_leadgen') . '/pdf/hotel.pdf');
+define('ENERGY_LEADGEN_IMG_ANDET', drupal_get_path('module', 'energy_leadgen') . '/pdf/andet.pdf');
+
+
+$GLOBALS['energy_leadgen_path'] = drupal_get_filename('module', 'energy_leadgen');
+
+function energy_leadgen_menu() {
+	$item['energy_leadgen'] = array(
+	'title' => 'Beregn, hvad din virksomhed kan få ud af et energitjek',
+	'page callback' => 'drupal_get_form',
+	'page arguments' => array('energy_leadgen_form'),
+	'access arguments' => array('access content'),
+	);
+	return $item;
+}
+
+//Form til første step
+function energy_leadgen_form($form, &$form_state) {
+	//krumo($form_state['input']); 
+	//Tjek hvilket step, bruger befinder sig paa
+	if(isset($form_state['storage']['payoff'])) {
+		return energy_leadgen_form_payoff();
+	}
+	else if(isset($form_state['storage']['contact'])) {
+		return energy_leadgen_form_contact();
+	}
+	
+	//Den første del af formen, hvor bruger skal besvare spørgsmål om egen virksomhed
+	drupal_set_title(t("Beregn din virksomheds potentielle energibesparelse - trin 1"));
+	
+	$form = array();
+	
+	$options = array(0  => t('Nej'), 1 => t('Ja'));
+	$form['sprmaal'] = array(
+	'#type' => 'fieldset',
+	'#collapsible' => FALSE,
+	'#tree' => TRUE,
+	);
+	$form['sprmaal']['intro'] = array(
+		'#type' => 'item',
+		'#title' => t('Besvar fem hurtige spørgsmål og find din potentielle besparelse...'),
+	);
+	$form['sprmaal']['antal_medarbejdere'] = array(
+		'#type' => 'radios',
+		'#title' => t('Er antallet af medarbejdere i virksomheden over 50?'),
+		'#options' => $options,
+		'#required' => TRUE,
+		'#theme' => 'leadgen_radios',
+	);
+	$form['sprmaal']['alder_bygninger'] = array(
+		'#type' => 'radios',
+		'#title' => t('Er virksomhedens bygninger og industriudstyr mere end 20 år gammelt?'),
+		'#options' => $options,
+		'#required' => TRUE,
+		'#theme' => 'leadgen_radios',
+	);
+	$form['sprmaal']['udfoert_energitjek'] = array(
+		'#type' => 'radios',
+		'#title' => t('Er der udført struktureret energitjek af virksomheden inden for de seneste 5 år?'),
+		'#options' => $options,
+		'#required' => TRUE,
+		'#theme' => 'leadgen_radios',
+	);
+	$form['sprmaal']['opsat_maaleudstyr'] = array(
+		'#type' => 'radios',
+		'#title' => t('Er der opsat måleudstyr, der måler energiforbruget på de væsentligste forbrugere?'),
+		'#options' => $options,
+		'#required' => TRUE,
+		'#theme' => 'leadgen_radios',
+	);
+	$form['sprmaal']['foretaget_energitiltag'] = array(
+		'#type' => 'radios',
+		'#title' => t('Er der foretaget væsentlige energitiltag i forhold til selve bygningerne?'),
+		'#options' => $options,
+		'#required' => TRUE,
+		'#theme' => 'leadgen_radios',
+	);
+		
+	$form['calculate'] = array(
+		'#type' => 'submit',
+		'#value' => t('Beregn din potentielle besparelse'),
+	);
+	$form['#theme'] = 'theme_energy_leadgen_form';
+	krumo($form);
+	return $form;
+} 
+
+function energy_leadgen_form_contact() {
+	drupal_set_title(t("Beregn din virksomheds potentielle energibesparelse - trin 2"));	
+
+	$form = array();
+	$form['kontakt'] = array(
+		'#type' => 'fieldset',
+		'#collapsible' => FALSE,
+		'#tree' => TRUE,
+	);
+	$form['kontakt']['intro'] = array(
+		'#type' => 'item',
+		'#title' => t('Din virksomhed kan potentielt spare'),
+	);
+	$form['kontakt']['resultat'] = array(
+		'#type' => 'item',
+		'#title' => t($_SESSION['energy_leadgen_score'] . '%'),
+	);
+	$form['kontakt']['forbehold'] = array(
+		'#type' => 'item',
+		'#prefix' => '<div class="forbehold">',
+		'#title' => t('Resultatet er baseret på et skøn af energibesparelsespotentialet og skal ikke opfattes som en garanti. Et mere præcist besparelsespotentiale kan beregnes, når flere konkrete oplysninger foreligger.'),
+		'#suffix' => '</div>',
+	);
+	$form['kontakt']['call'] = array(
+		'#type' => 'item',
+		'#prefix' => '<div class="call-to-action">',
+		'#title' => t('Send dine kontaktinformationer og få et gratis whitepaper'),
+		'#suffix' => '</div>',
+	);
+	$form['kontakt']['energitjek'] = array(
+		'#type' => 'checkboxes',
+		'#options' => array(
+			1 => t('Ja tak, jeg vil gerne kontaktes vedrørende energitjek af min virksomhed')
+			),
+	);
+	$form['kontakt']['navn'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Navn'),
+		'#required' => TRUE,
+	);
+	
+	$form['kontakt']['stilling'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Stilling'),
+		'#required' => FALSE,
+	);
+
+	$form['kontakt']['virksomhed'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Virksomhed'),
+		'#required' => TRUE,
+	);
+
+	$form['kontakt']['branche'] = array(
+		'#type' => 'select',
+        '#title' => t('Branche'),
+        '#options' => array(
+           0 => t('Industri'),
+           1 => t('Handel og kontor'),
+					 2 => t('Hospital'),
+					 3 => t('Hotel og konference'),	
+					 4 => t('Andet'),
+        ),
+	    '#required' => TRUE,
+	);
+	
+	$form['kontakt']['email'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Email'),
+		'#element_validate' => array('_is_valid_email'),
+		'#required' => TRUE,
+	);
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Download whitepaper'),
+	);
+	$form['#theme'] = 'theme_energy_leadgen_form_contact';
+	krumo($form);
+	return $form;
+}
+
+function energy_leadgen_form_payoff() {
+
+	drupal_set_title(t("Beregn din virksomheds potentielle energibesparelse - trin 3"));
+	
+	$form = array();
+	$form['payoff'] = array(
+		'#type' => 'fieldset',
+		'#collapsible' => FALSE,
+		'#tree' => TRUE,
+	);
+	$form['payoff']['intro'] = array(
+		'#type' => 'item',
+		'#title' => t('Download whitepaper...'),
+	);
+	if($_SESSION['energy_leadgen_accept'] == 1) {
+	$form['payoff']['tak'] = array(
+		'#type' => 'item',
+		'#title' => t('Mange tak for din henvendelse. En af vores energitjek-konsulenter vil kontakte dig hurtigst muligt'),
+	);
+	}
+	$form['payoff']['img'] = array(
+		  '#path' => $_SESSION['energy_leadgen_img'], //img path...
+		  '#alt' => 'Dette er et billede',
+		  '#title' => 'Dette er et billede',
+			'#theme' => 'leadgen_image',
+	);
+	$form['payoff']['info'] = array(
+		'#type' => 'markup',
+		'#markup' => '<div class="lead_msg">' . $_SESSION['energy_leadgen_msg'] . '</div>',	
+	);
+	// $form['payoff']['download_img'] = array(
+	// 		'#path' => drupal_get_path('module', 'energy_leadgen') . '/img/download.jpg', //img path...
+	// 		'#alt' => 'Download materiale',
+	// 		'#title' => 'Download materiale',
+	// 		'#theme' => 'image',
+	// 	);
+	$form['#theme'] = 'theme_energy_leadgen_form_payoff';
+	krumo($form);
+	return $form;
+
+}
+
+/**
+ * Validering af opgivet email
+ */
+function _is_valid_email($element, &$form_state) {
+ 	 if (!valid_email_address($form_state['values']['kontakt']['email'])) {
+	   form_error($element, t('Den indtastede email-adresse er ikke gyldig!'));
+	 }
+}				
+
+/**
+ * Logik til haandtering af submit af formen paa henh step 1 og step 2
+ */
+
+function energy_leadgen_form_submit($form, &$form_state) {	
+		
+		if ($form_state['triggering_element']['#id'] == 'edit-calculate') {
+			
+			//sæt brugerens score for potentiel energibesparelse 
+			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['antal_medarbejdere']) ? 5 : 0;
+			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['alder_bygninger'] ? 10 : 0);
+			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['udfoert_energitjek'] ? 0 : 10);
+			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['opsat_maaleudstyr'] ? 0 : 5);
+			$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['foretaget_energitiltag'] ? 0 : 5);
+			
+			$form_state['storage']['contact'] = TRUE; //Sæt kontaktoplysninger som aktive step
+			$form_state['storage']['questions_values'] = $form_state['values']; //Deponer aktuelle indtastninger i storage
+			$form_state['rebuild'] = TRUE; //Genbyg formular med step 2 - kontaktoplysninger
+			
+		}
+		else if ($form_state['triggering_element']['#id'] == 'edit-submit') {
+			
+			//Sæt værdi for den første kommentar paa sidste side
+			if($form_state['values']['kontakt']['energitjek'][1] != NULL) {
+			$_SESSION['energy_leadgen_accept'] = 1;
+			}
+			
+			//Sæt værdi for payoff messages og images
+			switch ($form_state['values']['kontakt']['branche']) {
+			    case 0:
+			        $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_INDUSTRI;
+							$_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_INDUSTRI;
+			        break;
+			    case 1:
+			         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_KONTOR;
+							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_KONTOR;
+			        break;
+			    case 2:
+			         $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOSPITAL;
+						   $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOSPITAL;
+			        break;
+					case 3: 
+							 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_HOTEL;
+							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_HOTEL;
+							break;
+					case 4: 
+							 $_SESSION['energy_leadgen_msg'] = ENERGY_LEADGEN_MSG_ANDET;
+							 $_SESSION['energy_leadgen_img'] = ENERGY_LEADGEN_IMG_ANDET;
+			        break;
+			}
+			
+			//Opdater form til næste trin
+			$form_state['storage']['payoff'] = TRUE; //Sæt kundens payoff for lead som aktive step
+			$form_state['storage']['contact'] = $form_state['values']; //Deponer aktuelle indtastninger i storage
+			$form_state['rebuild'] = TRUE; //Genbyg formular med step 3 - kundens payoff
+					
+			$path = $form_state['storage']['questions_values']['sprmaal'];		
+			$path2 = $form_state['storage']['contact']['kontakt'];
+			
+			//Indsæt lead i databasen
+				$lead = db_insert('energy_leadgen') 
+				->fields(array(					
+					'time_submitted' => time(),
+				  'antal_medarbejdere' => $path['antal_medarbejdere'],
+					'alder_bygninger' => $path['alder_bygninger'],
+				  'udfoert_energitjek' => $path['udfoert_energitjek'],
+				  'opsat_maaleudstyr' => $path['opsat_maaleudstyr'],
+				  'foretaget_energitiltag' => $path['foretaget_energitiltag'],
+					'navn' => $path2['navn'],
+				  'stilling' => $path2['stilling'],
+					'virksomhed' => $path2['virksomhed'],
+				  'branche' => $path2['branche'],
+					'email' => $path2['email'], //I et prod.miljø kan indhentede email krypteres, saa kundens oplysninger beskyttes 
+				  'accept_kontakt' => $path2['energitjek'],
+				))
+				->execute();
+	
+			//unset ($form_state['storage']);
+			}
+}
+
+//Add custom module CSS to pages 
+drupal_add_css(drupal_get_path('module', 'energy_leadgen') . '/css/ee_leadgen.css', array('group' => CSS_THEME, 'every_page' => false, 'weight' => 9999));
+
+/**
+ * Implements hook_theme() 
+ * 
+ */
+function energy_leadgen_theme() {  
+	return array(
+		//Deklarere theming funktion for de respektive steps i formen 
+		'energy_leadgen_form' => array(
+  		'render element' => 'form',
+			'function' => 'theme_energy_leadgen_form',
+    ),
+		'energy_leadgen_form_contact' => array(
+  		'render element' => 'form',
+			'function' => 'energy_leadgen_form_contact',
+    ),
+		'energy_leadgen_form_payoff' => array(
+	  		'render element' => 'form',
+	      'function' => 'energy_leadgen_form_payoff',
+	  ),
+		// Deklarere theming funktion for radiobtns.
+		'leadgen_radios' => array(
+		  'arguments' => array('element' => NULL),
+		),
+		'leadgen_radio' => array(
+		   'arguments' => array('element' => NULL),
+		),
+		//Deklarere theming funktion for payoff billeder
+		'leadgen_image' => array(
+			 'arguments' => array('element' => NULL),
+		),
+	);
+}
+
+/**
+ * Theming function - form step 1
+ */
+function theme_energy_leadgen_form($variables) {
+	$form = $variables['form'];
+	$output .= '<div class="intro_class">' . drupal_render($form['sprmaal']['intro'] . '</div>'); 
+	$output .= drupal_render($form['sprmaal']['antal_medarbejdere']); 
+	$output .= drupal_render($form['sprmaal']['alder_bygninger']); 
+	$output .= drupal_render($form['sprmaal']['udfoert_energitjek']); 
+	$output .= drupal_render($form['sprmaal']['opsat_maaleudstyr']); 
+	$output .= drupal_render($form['sprmaal']['foretaget_energitiltag']); 	
+	$output .= drupal_render($form['calculate']); 
+	$output .= drupal_render_children($form);
+	return $output;
+}
+
+/**
+ * Theming function - form step 2
+ */
+
+function theme_energy_leadgen_form_contact($variables) {
+  //krumo($variables);
+	$form = $variables['form'];
+	$output = '';
+	$output .= '<h4>' . drupal_render($form['kontakt']['intro']) . '</h4>';
+	$output .= '<h1><span class="result">' . drupal_render($form['kontakt']['resultat']) . '</span></h1>'; 
+	$output .= drupal_render($form['kontakt']['forbehold']);
+	$output .= drupal_render($form['kontakt']['call']);
+	$output .= drupal_render($form['kontakt']['energitjek']);
+	$output .= drupal_render($form['kontakt']['navn']); 
+	$output .= drupal_render($form['kontakt']['stilling']); 
+	$output .= drupal_render($form['kontakt']['virksomhed']);
+	$output .= drupal_render($form['kontakt']['branche']);
+	$output .= drupal_render($form['kontakt']['email']);
+	$output .= drupal_render_children($form);
+	return $output;
+}
+
+function theme_energy_leadgen_form_payoff($variables) {
+  //krumo($variables);
+	$form = $variables['form'];
+	$output = '';
+	$output .= drupal_render($form['payoff']['intro']);
+	$output .= drupal_render($form['payoff']['tak']); 
+	$output .= drupal_render($form['payoff']['img']);
+	$output .= drupal_render($form['payoff']['info']); 
+	$output .= l('This is a link', 'http://www.google.com');
+	//$output .= drupal_render($form['payoff']['download_img']),  
+	$output .= drupal_render_children($form);
+	return $output;
+}
+
+function theme_leadgen_radios($element) {
+	$keys = array_keys($element[$key]['#options']);
+	$type = $element[$key]['#parents'][0]; //anvende denne til dobbelttjek af inputtype?
+  // Wrapper div for label og radiobtn
+  $output .= '<div class="form_item form-type-radios form-item-sprmaal">';
+	$counter = 0;
+  foreach ($keys as $key) {
+		$element['value_of_key'] = $counter;
+    // Each radios is themed by calling our custom 'leadgen_radio' theme function.
+    $output .= theme('leadgen_radio', $element);
+		$counter++;
+  }
+ 
+  $output .= '</div>';
+  return $output;
+}
+
+function theme_leadgen_radio($element) {
+	$my_key = $element['value_of_key'];
+	//krumo($element);
+  _form_set_class($element, array('energy-leadgen-radio')); //Anvendes denne?
+  $output = '<input type="radio" ';
+	$output .= 'id="' . $element[$key[0]][$my_key]['#id'] . '" ';
+  $output .= 'name="' . $element[$key[0]][$my_key]['#name'] . '" ';
+  $output .= 'value="' . $element[$key[0]][$my_key]['#return_value'] . '" ';
+  $output .= ' />';
+  if (!is_null($element[$key[0]][$my_key]['#title'])) {
+    $output = '<label class="option" for="' . $element[$key[0]][$my_key]['#id'] . '">' . $output . ' ' . $element[$key[0]][$my_key]['#title'] . '</label>';
+  }
+ 
+  unset($element['#title']);
+  // Default 'form_element' theme is uncommented below, which create a DIV wrapper for each item.
+  //return theme('form_element', $element, $output);
+  return $output;
+}
+
+function theme_leadgen_image($variables) {
+	//krumo($variables[$key[0]]['#path']);
+  $attributes = $variables['attributes'];
+  $attributes['src'] = file_create_url($variables[$key[0]]['#path']);
+
+  foreach (array('width', 'height', 'alt', 'title') as $my_key) {
+		
+    if (isset($variables[$key[0]["#$my_key"]])) {
+      $attributes[$my_key] = $variables[$key[0]["#$my_key"]];
+			//krumo($attributes[$my_key]);
+    }
+  }
+
+  return '<img class="img_leadgen"' . drupal_attributes($attributes) . ' />';
+}
+
+

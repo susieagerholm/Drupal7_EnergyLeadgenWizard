@@ -1,0 +1,120 @@
+h1#page-title.title {
+	font-size: 2em;
+	color: #009530;
+	margin-top: 0px;
+	-webkit-margin-after: 0px;
+}
+
+div.fieldset-wrapper {
+	width: 80%;
+	margin-top: 0px !important;
+}
+
+fieldset#edit-sprmaal.form-wrapper, fieldset#edit-kontakt.form-wrapper, fieldset#edit-payoff.form-wrapper {
+	margin-top: 0px !important;
+	min-height: 500px;
+}
+
+fieldset {
+	background: none !important;
+	background-image: url('../img/checkbox_opacity_530x530.png') !important;
+	background-repeat: no-repeat !important;
+	border: 1px solid #fff !important;	
+	top: 0px !important;
+}
+
+fieldset legend {
+	background: white !important;	
+	font-family: inherit !important;
+	border: 1px solid #fff !important;	
+}
+
+label {
+	display: inline;
+	float: left;
+	width: 70%;
+	font-size: 14px !important;
+	font-weight: normal !important;
+	color: #626469;
+	padding-right: 10% !important;
+}
+
+label.option {
+	display: inline;
+	float: left;
+	width: 10%;
+	font-size: 14px !important;
+	font-weight: normal !important;
+	color: #626469;
+	padding-right: 0px !important;
+}
+
+div.form-item-sprmaal-antal-medarbejdere {
+	margin-bottom:60px;
+}
+
+div.form-type-radios {
+	padding-bottom: 30px !important;
+}
+
+div.form-type-checkbox > input {
+	padding: 0px !important;
+	margin: 0px !important;
+	display: inline;
+	float: left;
+	width: 5%;
+}
+div.form-type-checkbox > label.option {
+	padding: 0px !important;
+	margin: 0px !important;
+	display: inline;
+	float: left;
+	width: 95%;
+}	
+
+div#edit-sprmaal-intro > label {
+	width: 100%;
+	font-size: 16px !important;
+	padding-bottom: 20px;
+}
+
+div#edit-kontakt-forbehold {
+	margin-top: 20px !important;
+}
+
+div#edit-kontakt-forbehold > label {
+		display: block;
+		width: 100%;
+		font-size: 10px !important;
+		font-weight: normal !important;
+		color: #626469;
+		padding-bottom: 20px;
+}
+div#edit-kontakt-resultat > label {
+		display: block;
+		width: 100%;
+		font-size: 55px !important;
+		font-weight: normal !important;
+		color: #626469;
+}
+div#edit-kontakt-call > label, div#edit-payoff-intro > label, div#edit-payoff-tak > label {
+	width: 100%;
+	font-size: 18px !important;
+	font-weight: normal !important;
+	color: #009530;
+}	
+
+input.form-submit {
+	float: right;
+	margin-right: 20%;
+}
+
+.tabs {
+	margin-bottom: 0px !important;
+}
+
+img.img_leadgen {
+	float: left;
+	margin-right: 10px;
+	border: 1px solid #efefef;
+}

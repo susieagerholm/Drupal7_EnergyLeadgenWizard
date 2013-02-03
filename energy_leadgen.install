@@ -1,0 +1,89 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function energy_leadgen_schema() {
+	$schema = array();
+	
+	$schema['energy_leadgen'] = array(
+		'description' => 'Denne tabel indeholder leads indsamlet via Energy-efficiency leadgenerator modulet.',
+		'fields' => array(
+			'lead_id'=> array(
+				'type' => 'serial',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'time_submitted' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'antal_medarbejdere' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'alder_bygninger' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'udfoert_energitjek' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'opsat_maaleudstyr' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'foretaget_energitiltag' => array(
+				'type' => 'int',
+				'unsigned' => TRUE,
+				'not null' => TRUE,
+			),
+			'navn' => array(
+				'type' => 'varchar',
+				'length' => 64,
+				'not null' => TRUE,
+			),
+			'stilling' => array(
+					'type' => 'varchar',
+					'length' => 64,
+					'default' => '',
+			),
+			'virksomhed' => array(
+					'type' => 'varchar',
+					'length' => 64,
+					'not null' => TRUE,
+			),
+			'branche' => array(
+					'type' => 'varchar',
+					'length' => 64,    
+					'not null' => TRUE,
+			),
+			'email' => array(
+					'type' => 'varchar',
+					'length' => 64,
+					'not null' => TRUE,
+			),
+			'accept_kontakt' => array(
+					'type' => 'int',
+					'unsigned' => TRUE,
+			),
+		),
+		'primary key' => array('lead_id'),
+	);
+	
+	return $schema;
+	
+}
+
+/**
+ * Implements hook_update_N()
+ */
+function energy_leadgen_update_7000() {
+	drupal_install_schema('energy_leadgen');
+}
