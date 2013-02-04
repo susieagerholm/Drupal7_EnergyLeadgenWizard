@@ -273,7 +273,7 @@ function energy_leadgen_form_submit($form, &$form_state) {
 }
 
 function calculate_score($form_state) {
-		//Find brugerens score for potentiel energibesparelse - burde refaktoreres til controller om muligt
+		//Find brugerens score for potentiel energibesparelse - burde refaktoreres til Controller om muligt
 		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['antal_medarbejdere']) ? 5 : 0;
 		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['alder_bygninger'] ? 10 : 0);
 		$_SESSION['energy_leadgen_score'] += ($form_state['values']['sprmaal']['udfoert_energitjek'] ? 0 : 10);
@@ -376,6 +376,7 @@ function energy_leadgen_theme() {
  */
 function theme_energy_leadgen_form($variables) {
 	$form = $variables['form'];
+	$output = '<h4>This HTML is not showing up!!!</h4>';
 	$output .= '<div class="intro_class">' . drupal_render($form['sprmaal']['intro'] . '</div>'); 
 	$output .= drupal_render($form['sprmaal']['antal_medarbejdere']); 
 	$output .= drupal_render($form['sprmaal']['alder_bygninger']); 
@@ -483,5 +484,15 @@ function theme_leadgen_image($variables) {
 }
 
 //Tilføj custom CSS til siden 
-drupal_add_css(drupal_get_path('module', 'energy_leadgen') . '/css/ee_leadgen.css', array('group' => CSS_THEME, 'every_page' => false, 'weight' => 9999));
+//drupal_add_css(drupal_get_path('module', 'energy_leadgen') . '/css/ee_leadgen.css', array('group' => CSS_THEME, 'every_page' => false, 'weight' => 9999));
 
+/**
+ * Implements hook_views_api().
+ */
+function energy_leadgen_views_api() {
+	return array(
+		'api' => 3,
+		'path' => drupal_get_path('module', 'energy_leadgen'),
+	);
+	
+}
